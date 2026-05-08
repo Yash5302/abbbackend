@@ -233,6 +233,16 @@ app.get('/api/questions/count/category/:category', async (req, res) => {
     }
 });
 
+// 3.2 Get overall count of all questions
+app.get('/api/questions/count/total', async (req, res) => {
+    try {
+        const count = await Question.countDocuments({});
+        res.json({ totalQuestions: count });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching total count', error: error.message });
+    }
+});
+
 // 4. Get all questions (optional but useful)
 app.get('/api/questions', async (req, res) => {
     try {

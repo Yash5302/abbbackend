@@ -66,7 +66,10 @@
         <div class="bg-white p-6 rounded-xl shadow-md">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-700">Results</h2>
-                <button onclick="clearResults()" class="text-sm text-gray-500 hover:text-red-500">Clear</button>
+                <div class="flex gap-4 items-center">
+                    <button onclick="fetchTotalCount()" class="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200">Get Total Count</button>
+                    <button onclick="clearResults()" class="text-sm text-gray-500 hover:text-red-500">Clear</button>
+                </div>
             </div>
             <div id="statusMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
             <pre id="jsonResult" class="json-container">Waiting for action...</pre>
@@ -166,6 +169,17 @@
                 showStatus(`Count for category ${category}: ${data.questionCount}`);
             } catch (err) {
                 showStatus('Error fetching category count', true);
+            }
+        }
+
+        async function fetchTotalCount() {
+            try {
+                const res = await fetch(`${API_BASE}/questions/count/total`);
+                const data = await res.json();
+                displayJSON(data);
+                showStatus(`Overall total questions in database: ${data.totalQuestions}`);
+            } catch (err) {
+                showStatus('Error fetching total count', true);
             }
         }
 
