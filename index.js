@@ -222,6 +222,17 @@ app.get('/api/questions/count/:speaker', async (req, res) => {
     }
 });
 
+// 3.1 Get count of questions by category
+app.get('/api/questions/count/category/:category', async (req, res) => {
+    try {
+        const { category } = req.params;
+        const count = await Question.countDocuments({ "Category": new RegExp(`^${category}$`, 'i') });
+        res.json({ category, questionCount: count });
+    } catch (error) {
+        res.status(500).json({ message: 'Error counting questions by category', error: error.message });
+    }
+});
+
 // 4. Get all questions (optional but useful)
 app.get('/api/questions', async (req, res) => {
     try {
