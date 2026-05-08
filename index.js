@@ -212,7 +212,7 @@ app.get('/api/questions/category/:category', async (req, res) => {
 });
 
 // 3. Get count of questions by speaker
-app.get('/api/questions/count/:speaker', async (req, res) => {
+app.get('/api/questions/count/speaker/:speaker', async (req, res) => {
     try {
         const { speaker } = req.params;
         const count = await Question.countDocuments({ "Speaker Name": new RegExp(`^${speaker}$`, 'i') });

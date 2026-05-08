@@ -201,7 +201,7 @@
             if (!speaker) return alert('Enter a speaker name');
 
             try {
-                const res = await fetch(`${API_BASE}/questions/count/${speaker}`);
+                const res = await fetch(`${API_BASE}/questions/count/speaker/${speaker}`);
                 const data = await res.json();
                 displayJSON(data);
                 showStatus(`Retrieved count for speaker: ${speaker}`);
