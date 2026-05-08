@@ -243,6 +243,32 @@ app.get('/api/questions/count/total', async (req, res) => {
     }
 });
 
+// 3.3 Get aggregated count for ALL categories
+app.get('/api/questions/count/all-categories', async (req, res) => {
+    try {
+        const stats = await Question.aggregate([
+            {
+                $group: {
+                    _id: "$Category",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Transform array into the requested format: { CategoryName: "Count", ... }
+        const result = {};
+        stats.forEach(item => {
+            if (item._id) {
+                result[item._id] = String(item.count);
+            }
+        });
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching category statistics', error: error.message });
+    }
+});
+
 // 4. Get all questions (optional but useful)
 app.get('/api/questions', async (req, res) => {
     try {

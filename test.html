@@ -67,6 +67,7 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-700">Results</h2>
                 <div class="flex gap-4 items-center">
+                    <button onclick="fetchCategoryStats()" class="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full hover:bg-green-200">Category Stats</button>
                     <button onclick="fetchTotalCount()" class="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200">Get Total Count</button>
                     <button onclick="clearResults()" class="text-sm text-gray-500 hover:text-red-500">Clear</button>
                 </div>
@@ -180,6 +181,17 @@
                 showStatus(`Overall total questions in database: ${data.totalQuestions}`);
             } catch (err) {
                 showStatus('Error fetching total count', true);
+            }
+        }
+
+        async function fetchCategoryStats() {
+            try {
+                const res = await fetch(`${API_BASE}/questions/count/all-categories`);
+                const data = await res.json();
+                displayJSON(data);
+                showStatus(`Retrieved counts for all categories`);
+            } catch (err) {
+                showStatus('Error fetching category statistics', true);
             }
         }
 
