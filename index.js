@@ -222,6 +222,17 @@ app.get('/api/questions/count/speaker/:speaker', async (req, res) => {
     }
 });
 
+// 3.4 Get all questions for a specific speaker
+app.get('/api/questions/speaker/:speaker', async (req, res) => {
+    try {
+        const { speaker } = req.params;
+        const questions = await Question.find({ "Speaker Name": new RegExp(`^${speaker}$`, 'i') });
+        res.json(questions);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching speaker data', error: error.message });
+    }
+});
+
 // 3.1 Get count of questions by category
 app.get('/api/questions/count/category/:category', async (req, res) => {
     try {
