@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABB API Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Add SheetJS for frontend Excel parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .json-container {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">ABB Excel API Tester</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <!-- Upload Section -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-xl font-semibold mb-4 text-blue-600">1. Upload Excel</h2>
+                <form id="uploadForm" class="space-y-4">
+                    <input type="file" id="excelFile" accept=".xlsx, .xls" 
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <button type="submit" 
+                            class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition">
+                        Upload Data
+                    </button>
+                </form>
+            </div>
+
+            <!-- Query Section -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-xl font-semibold mb-4 text-green-600">2. Query Data</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="categoryInput" placeholder="e.g. General" 
+                                   class="flex-1 border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-green-500">
+                            <button onclick="fetchByCategory()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Get</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Speaker Name</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="speakerInput" placeholder="e.g. Suchant" 
+                                   class="flex-1 border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-green-500">
+                            <button onclick="fetchSpeakerCount()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Count</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-white p-6 rounded-xl shadow-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-700">Results</h2>
+                <button onclick="clearResults()" class="text-sm text-gray-500 hover:text-red-500">Clear</button>
+            </div>
+            <div id="statusMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+            <pre id="jsonResult" class="json-container">Waiting for action...</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5002/api';
+
+        function showStatus(msg, isError = false) {
+            const el = document.getElementById('statusMessage');
+            el.innerText = msg;
+            el.className = `mb-4 p-3 rounded-lg text-sm ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+            el.classList.remove('hidden');
+        }
+
+        function displayJSON(data) {
+            document.getElementById('jsonResult').innerText = JSON.stringify(data, null, 2);
+        }
+
+        function clearResults() {
+            document.getElementById('jsonResult').innerText = 'Waiting for action...';
+            document.getElementById('statusMessage').classList.add('hidden');
+        }
+
+        // 1. Handle Upload (Frontend Parsing to JSON)
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            if (!file) return alert('Please select a file');
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) {
+                        showStatus('The excel file is empty', true);
+                        return;
+                    }
+
+                    console.log('Parsed JSON from frontend:', jsonData);
+                    
+                    // Now send the JSON to the backend
+                    const res = await fetch(`${API_BASE}/upload-json`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ data: jsonData })
+                    });
+
+                    const responseData = await res.json();
+                    if (res.ok) {
+                        showStatus(`Successfully uploaded ${responseData.count} records!`);
+                        displayJSON(responseData);
+                    } else {
+                        showStatus(responseData.message || 'Upload failed', true);
+                        displayJSON(responseData);
+                    }
+                } catch (err) {
+                    console.error('Fetch error:', err);
+                    showStatus('Server error. Make sure your backend is running and the /api/upload-json endpoint exists.', true);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // 2. Fetch by Category
+        async function fetchByCategory() {
+            const category = document.getElementById('categoryInput').value;
+            if (!category) return alert('Enter a category');
+
+            try {
+                const res = await fetch(`${API_BASE}/questions/category/${category}`);
+                const data = await res.json();
+                displayJSON(data);
+                showStatus(`Found ${data.length} records for category: ${category}`);
+            } catch (err) {
+                showStatus('Error fetching category', true);
+            }
+        }
+
+        // 3. Fetch Speaker Count
+        async function fetchSpeakerCount() {
+            const speaker = document.getElementById('speakerInput').value;
+            if (!speaker) return alert('Enter a speaker name');
+
+            try {
+                const res = await fetch(`${API_BASE}/questions/count/${speaker}`);
+                const data = await res.json();
+                displayJSON(data);
+                showStatus(`Retrieved count for speaker: ${speaker}`);
+            } catch (err) {
+                showStatus('Error fetching count', true);
+            }
+        }
+    </script>
+</body>
+</html>
